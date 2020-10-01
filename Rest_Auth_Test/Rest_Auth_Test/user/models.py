@@ -10,8 +10,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(_('name'), max_length=88, blank=True)
     email = models.EmailField(
         _('email address'), unique=True, null=True)
-    mobile = models.CharField(unique=True, max_length=100)
-
+    is_staff = models.BooleanField(_('active'), default=True)
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -22,8 +21,5 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = _('users')
 
     def get_full_name(self):
-        '''
-        Returns the from retail.order.models import Order, OrderItem, Invoice, OrderSettingsfirst_name plus the last_name, with a space in between.
-        '''
         full_name = '%s' % (self.name)
         return full_name.strip()
