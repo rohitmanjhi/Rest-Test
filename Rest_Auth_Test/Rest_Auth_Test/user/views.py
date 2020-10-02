@@ -18,6 +18,7 @@ class SignUp(APIView):
 
     def post(self, request, format=None):
         serializer = UserSerializer(data=request.data)
+        # Check serializer valid or not
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -29,19 +30,23 @@ class ForgotPassword(APIView):
     serializer_class = ForgotPasswordSerializer
 
     def post(self, request, format=None):
+        # Get all request data
         email = request.data.get('email')
         password = request.data.get('password')
         confirm_passrord = request.data.get('confirm_password')
 
+        # Check all field exist or not
         if email and password and confirm_passrord:
             try:
                 user = User.objects.get(email=email)
+
+                # Check password or confirm password match or not
                 if password == confirm_passrord:
                     user.set_password(password)
                     user.save()
                     return Response({"msg": "Password created successfully"}, status=status.HTTP_201_CREATED)
                 return Response({"msg": "Password and confirm password not match"}, status=status.HTTP_400_BAD_REQUEST)
-            except:
+            except User.DoesNotExist:
                 return Response({"msg": "Email does not exist"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"msg": "Something went wrong in input"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -53,6 +58,7 @@ def user_add(request):
     if request.method == 'POST':
         user_data = JSONParser().parse(request)
         user_serializer = UserSerializer(data=user_data)
+        # Check serializer valid or not
         if user_serializer.is_valid():
             user_serializer.save()
             return JsonResponse(user_serializer.data, status=status.HTTP_201_CREATED)
@@ -68,6 +74,8 @@ def user_list(request):
 
     if request.method == 'GET':
         users, msg = permission.get_permission()
+
+        # Check msg get or not if get then return
         if msg:
             return JsonResponse({"msg": msg}, status=status.HTTP_400_BAD_REQUEST)
         users_serializer = UserSerializer(users, many=True)
@@ -76,6 +84,8 @@ def user_list(request):
 
     elif request.method == 'DELETE':
         users, msg = permission.delete_permission()
+
+        # Check msg get or not if get then return
         if msg:
             return JsonResponse({"msg": msg}, status=status.HTTP_400_BAD_REQUEST)
         count = User.objects.all().delete()
@@ -99,6 +109,8 @@ def user_detail(request, pk):
 
     elif request.method == 'PUT':
         user_check, msg = permission.update_permission(user)
+
+        # Check msg get or not if get then return
         if msg:
             return JsonResponse({"msg": msg}, status=status.HTTP_400_BAD_REQUEST)
         user_data = JSONParser().parse(request)

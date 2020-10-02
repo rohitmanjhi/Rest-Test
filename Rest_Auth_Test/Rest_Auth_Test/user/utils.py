@@ -10,6 +10,8 @@ class Permission:
     # Get users data after check role of user
     def get_permission(self):
         msg = None
+
+        # Check user role
         if self.group.name == "Student":
             return User.objects.all(), msg
         if self.group.name == "Teacher":
@@ -20,11 +22,13 @@ class Permission:
     # Delete users data after check role of user
     def delete_permission(self):
         msg = None
+
+        # Check user role
         if self.group.name == "Student":
-            msg = "Permission Denied"
+            msg = "Permission Denied for Student"
             return None, msg
         if self.group.name == "Teacher":
-            msg = "Permission Denied"
+            msg = "Permission Denied for Teacher"
             return None, msg
         if self.group.name == "Super-admin":
             return User.objects.all(), msg
@@ -32,13 +36,15 @@ class Permission:
     # Update users data after check role of user
     def update_permission(self, user):
         msg = None
+
+        # Check user role
         if self.group.name == "Student":
-            msg = "Permission Denied"
+            msg = "Permission Denied for Student"
             return None, msg
         if self.group.name == "Teacher":
             if user.groups.first().name == "Student":
                 return user, msg
-            msg = "Permission Denied"
+            msg = "Permission Denied for Teacher"
             return None, msg
         if self.group.name == "Super-admin":
             return user, msg
