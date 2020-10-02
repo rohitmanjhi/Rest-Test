@@ -7,6 +7,7 @@ from .managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    ''' User model to store values'''
     name = models.CharField(_('name'), max_length=88, blank=True)
     email = models.EmailField(
         _('email address'), unique=True, null=True)

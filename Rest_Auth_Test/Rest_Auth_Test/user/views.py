@@ -5,11 +5,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http.response import JsonResponse
 from rest_framework.parsers import JSONParser
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer, ForgotPasswordSerializer
+from .utils import Permission
 # Create your views here.
 
 
+# Sign up functionality
 class SignUp(APIView):
     serializer_class = UserSerializer
 
@@ -21,6 +24,7 @@ class SignUp(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Forgot password functionality
 class ForgotPassword(APIView):
     serializer_class = ForgotPasswordSerializer
 
@@ -42,16 +46,11 @@ class ForgotPassword(APIView):
         return Response({"msg": "Something went wrong in input"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'POST', 'DELETE'])
-def user_list(request):
-    if request.method == 'GET':
-        users = User.objects.all()
+# Post users data
+@api_view(['POST'])
+def user_add(request):
 
-        users_serializer = UserSerializer(users, many=True)
-        return JsonResponse(users_serializer.data, safe=False)
-        # 'safe=False' for objects serialization
-
-    elif request.method == 'POST':
+    if request.method == 'POST':
         user_data = JSONParser().parse(request)
         user_serializer = UserSerializer(data=user_data)
         if user_serializer.is_valid():
@@ -59,13 +58,36 @@ def user_list(request):
             return JsonResponse(user_serializer.data, status=status.HTTP_201_CREATED)
         return JsonResponse(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# Get, Delete users functionality
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def user_list(request):
+
+    permission = Permission(request.user)
+
+    if request.method == 'GET':
+        users, msg = permission.get_permission()
+        if msg:
+            return JsonResponse({"msg": msg}, status=status.HTTP_400_BAD_REQUEST)
+        users_serializer = UserSerializer(users, many=True)
+        return JsonResponse(users_serializer.data, safe=False)
+        # 'safe=False' for objects serialization
+
     elif request.method == 'DELETE':
+        users, msg = permission.delete_permission()
+        if msg:
+            return JsonResponse({"msg": msg}, status=status.HTTP_400_BAD_REQUEST)
         count = User.objects.all().delete()
         return JsonResponse({'message': '{} Users were deleted successfully!'.format(count[0])}, status=status.HTTP_204_NO_CONTENT)
 
 
+# Get, Put, Delete operations endpoints
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def user_detail(request, pk):
+    permission = Permission(request.user)
+
     try:
         user = User.objects.get(pk=pk)
     except User.DoesNotExist:
@@ -76,8 +98,11 @@ def user_detail(request, pk):
         return JsonResponse(user_serializer.data)
 
     elif request.method == 'PUT':
+        user_check, msg = permission.update_permission(user)
+        if msg:
+            return JsonResponse({"msg": msg}, status=status.HTTP_400_BAD_REQUEST)
         user_data = JSONParser().parse(request)
-        user_serializer = UserSerializer(user, data=user_data)
+        user_serializer = UserSerializer(user_check, data=user_data)
         if user_serializer.is_valid():
             user_serializer.save()
             return JsonResponse(user_serializer.data)
