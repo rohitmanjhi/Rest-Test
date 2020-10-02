@@ -7,6 +7,7 @@ class Permission:
         self.user = user
         self.group = user.groups.first()
 
+    # Get users data after check role of user
     def get_permission(self):
         msg = None
         if self.group.name == "Student":
@@ -16,6 +17,7 @@ class Permission:
         if self.group.name == "Super-admin":
             return User.objects.all(), msg
 
+    # Delete users data after check role of user
     def delete_permission(self):
         msg = None
         if self.group.name == "Student":
@@ -27,6 +29,7 @@ class Permission:
         if self.group.name == "Super-admin":
             return User.objects.all(), msg
 
+    # Update users data after check role of user
     def update_permission(self, user):
         msg = None
         if self.group.name == "Student":

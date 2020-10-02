@@ -4,17 +4,11 @@ from django.contrib.auth.models import Group
 from django import forms
 
 
-class GroupSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Group
-        fields = ('name',)
-
-
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    # groups = serializers.SlugRelatedField(
-    #     queryset=Group.objects.first(), slug_field='name'
-    # )
+
+    groups = serializers.SlugRelatedField(
+        many=True, read_only=True, slug_field="name")
 
     class Meta:
         model = User
