@@ -1,14 +1,12 @@
 from rest_framework import status
 from django.shortcuts import render
-from .serializers import UserSerializer, ForgotPasswordSerializer
 from Rest_Auth_Test.user.models import User
 from rest_framework.response import Response
-from rest_framework.generics import RetrieveUpdateDestroyAPIView, ListCreateAPIView
-from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework import generics
 from rest_framework.views import APIView
-
-
+from django.http.response import JsonResponse
+from rest_framework.parsers import JSONParser
+from rest_framework.decorators import api_view
+from .serializers import UserSerializer, ForgotPasswordSerializer
 # Create your views here.
 
 
@@ -16,7 +14,6 @@ class SignUp(APIView):
     serializer_class = UserSerializer
 
     def post(self, request, format=None):
-        print('request: ', request)
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -45,46 +42,47 @@ class ForgotPassword(APIView):
         return Response({"msg": "Something went wrong in input"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class get_post_users(ListCreateAPIView):
-    # permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-    serializer_class = UserSerializer
-    parser_classes = (MultiPartParser, FormParser,)
-
-    # pagination_class = CustomPagination
-
-    def get_queryset(self):
+@api_view(['GET', 'POST', 'DELETE'])
+def user_list(request):
+    if request.method == 'GET':
         users = User.objects.all()
-        return users
 
-    # Get all items
-    def get(self, request):
-        users = self.get_queryset()
-        # paginate_queryset = self.paginate_queryset(items)
-        serializer = self.serializer_class(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        users_serializer = UserSerializer(users, many=True)
+        return JsonResponse(users_serializer.data, safe=False)
+        # 'safe=False' for objects serialization
 
-    # Create a new item
+    elif request.method == 'POST':
+        user_data = JSONParser().parse(request)
+        user_serializer = UserSerializer(data=user_data)
+        if user_serializer.is_valid():
+            user_serializer.save()
+            return JsonResponse(user_serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # def post(self, request):
-    #     name = request.data.get('name')
-    #     email = request.data.get('email')
-    #     groups = request.data.get('groups')
-    #     print('groups: ', groups)
-    #     item = User.objects.
+    elif request.method == 'DELETE':
+        count = User.objects.all().delete()
+        return JsonResponse({'message': '{} Users were deleted successfully!'.format(count[0])}, status=status.HTTP_204_NO_CONTENT)
 
 
-class UpdateUser(generics.UpdateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    # permission_classes = (permissions.IsAuthenticated,)
+@api_view(['GET', 'PUT', 'DELETE'])
+def user_detail(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return JsonResponse({'message': 'The user does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.name = request.data.get("name")
-        instance.save()
+    if request.method == 'GET':
+        user_serializer = UserSerializer(user)
+        return JsonResponse(user_serializer.data)
 
-        serializer = self.get_serializer(instance)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+    elif request.method == 'PUT':
+        user_data = JSONParser().parse(request)
+        user_serializer = UserSerializer(user, data=user_data)
+        if user_serializer.is_valid():
+            user_serializer.save()
+            return JsonResponse(user_serializer.data)
+        return JsonResponse(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data)
+    elif request.method == 'DELETE':
+        user.delete()
+        return JsonResponse({'message': 'User was deleted successfully!'}, status=status.HTTP_204_NO_CONTENT)
